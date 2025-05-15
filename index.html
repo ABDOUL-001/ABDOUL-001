@@ -1,29 +1,29 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3mtt showcase</title>
+  <title>3MTT showcase</title>
 
-  <!-- Load KaTeX for rendering math expressions -->
+  <!-- KaTeX for math rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
 
-  <!-- Load Highlight.js theme for code syntax highlighting -->
+  <!-- Highlight.js theme -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
   <style>
-  	*{
-  		margin:0;
-  		padding:0;
-  		box-size:border-box;
-  	}
-    /* Basic styling for the body */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       background-color: #f3f4f6;
       padding: 1rem;
     }
 
-    /* Chat container styles */
     #chatBox {
       max-width: 800px;
       margin: auto;
@@ -32,7 +32,6 @@
       gap: 1rem;
     }
 
-    /* Common message style */
     .message {
       padding: 1rem;
       border-radius: 10px;
@@ -40,102 +39,114 @@
       max-width: 80%;
     }
 
-    /* Style for user messages */
     .user {
       align-self: flex-end;
       background: #1e293b;
       color: white;
     }
 
-    /* Style for bot messages */
     .bot {
       align-self: flex-start;
       background: white;
       color: black;
     }
+
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      resize: vertical;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-<!-- Container for chat messages -->
 <div id="chatBox"></div>
 
-<!-- Input area for user message -->
-<textarea id="input" rows="3" style="width:100%" placeholder="Type a message..."></textarea>
-<br>
-
-<!-- Send button to trigger API call -->
+<textarea id="input" rows="3" placeholder="Type a message..."></textarea><br>
 <button onclick="sendMessage()">Send</button>
 
-<!-- Load Markdown parser -->
+<!-- Markdown parser -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- Load KaTeX core and auto-render script -->
+<!-- KaTeX scripts -->
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-<!-- Load Highlight.js for syntax highlighting -->
+<!-- Highlight.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <script>
-  const chatBox = document.getElementById('chatBox');  // Chat display container
-  const input = document.getElementById('input');      // User input textarea
-  const messages = [];                                 // Store chat history
+  const chatBox = document.getElementById('chatBox');
+  const input = document.getElementById('input');
+  const messages = [];
 
-  // Send message to OpenRouter and display response
   async function sendMessage() {
-    const text = input.value.trim();  // Get and trim user input
-    if (!text) return;                // Do nothing if input is empty
+    const text = input.value.trim();
+    if (!text) return;
 
-    renderMessage(text, 'user');      // Show user message in chat
-    messages.push({ role: "user", content: text });  // Add to history
-    input.value = '';                 // Clear input field
+    renderMessage(text, 'user');
+    messages.push({ role: "user", content: text });
+    input.value = '';
 
     try {
-      // Call OpenRouter API
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": "Bearer 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",  // Replace with your key
+          "Authorization": "Bearer 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", // ⚠️ For testing only!
           "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost",  // Required by OpenRouter
-          "X-Title": "My Pure JS Chat"         // Custom identifier
+          "HTTP-Referer": "http://localhost", // If hosted on GitHub, try "https://yourusername.github.io"
+          "X-Title": "My Pure JS Chat"
         },
         body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",       // Model name
-          messages: messages                   // Full chat history
+          model: "openai/gpt-3.5-turbo",
+          messages: messages
         })
       });
 
-      const data = await res.json();                    // Parse JSON result
-      const reply = data.choices[0].message.content;    // Get bot reply
-      messages.push({ role: "assistant", content: reply });  // Add to history
-      renderMessage(reply, 'bot');                      // Show bot message
+      const data = await res.json();
+
+      if (!data.choices || !data.choices[0]) {
+        throw new Error("Invalid API response: " + JSON.stringify(data));
+      }
+
+      const reply = data.choices[0].message.content;
+      messages.push({ role: "assistant", content: reply });
+      renderMessage(reply, 'bot');
+
     } catch (err) {
-      renderMessage("⚠️ Error contacting API: " + err.message, 'bot');  // Show error
+      console.error(err);
+      renderMessage("⚠️ Error contacting API: " + err.message, 'bot');
     }
   }
 
-  // Render a message in the chat window
   function renderMessage(text, role) {
-    const div = document.createElement("div");     // Create message div
-    div.className = `message ${role}`;             // Add class based on role
-    div.innerHTML = marked.parse(text);            // Render Markdown
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.innerHTML = marked.parse(text);
+    chatBox.appendChild(div);
 
-    chatBox.appendChild(div);                      // Add to chat box
+    hljs.highlightAll();
 
-    hljs.highlightAll();                           // Highlight any code blocks
-
-    renderMathInElement(div, {                     // Render any math
+    renderMathInElement(div, {
       delimiters: [
         { left: "$$", right: "$$", display: true },
         { left: "$", right: "$", display: false }
       ]
     });
 
-    chatBox.scrollTop = chatBox.scrollHeight;      // Scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 </script>
 
 </body>
 </html>
+	
